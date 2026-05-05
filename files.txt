@@ -1,1 +1,118 @@
-.
+version: "0.6.0"
+kind: app
+app:
+  name: "Even/Odd Checker"
+  mode: workflow
+  icon: "🤖"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  description: "Determines if a given number is even or odd"
+  use_icon_as_answer_icon: false
+dependencies: []
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ""
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+      - id: "start-node-uuid"
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position:
+          x: 80
+          y: 282
+        data:
+          type: start
+          title: Input Number
+          desc: Receives user input for number
+          variables:
+            - variable: input_number
+              label: Enter a Number
+              type: number
+              required: true
+      - id: "code-node-uuid"
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position:
+          x: 680
+          y: 282
+        data:
+          type: code
+          title: Check Parity
+          desc: Uses modulo operation to determine even/odd
+          variables:
+            - variable: input_number
+              value_selector:
+                - "start-node-uuid"
+                - input_number
+          code_language: python3
+          code: |
+            def main(args: dict) -> dict:
+                num = args['input_number']
+                result = 'Even number' if num % 2 == 0 else 'Odd number'
+                return {'result': result}
+          outputs:
+            result:
+              type: string
+      - id: "end-node-uuid"
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position:
+          x: 980
+          y: 282
+        data:
+          type: end
+          title: Output Result
+          desc: Returns final classification
+          outputs:
+            - variable: result
+              value_selector:
+                - "code-node-uuid"
+                - result
+              value_type: string
+    edges:
+      - id: "start-node-uuid-source-code-node-uuid-target"
+        source: "start-node-uuid"
+        sourceHandle: source
+        target: "code-node-uuid"
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: start
+          targetType: code
+          isInIteration: false
+          isInLoop: false
+        zIndex: 0
+      - id: "code-node-uuid-source-end-node-uuid-target"
+        source: "code-node-uuid"
+        sourceHandle: source
+        target: "end-node-uuid"
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: code
+          targetType: end
+          isInIteration: false
+          isInLoop: false
+        zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7
