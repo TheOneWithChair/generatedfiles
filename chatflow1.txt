@@ -1,0 +1,267 @@
+version: 0.5.0
+kind: app
+app:
+  mode: advanced-chat
+  name: Customer Support Triage Assistant
+  description: Triages inquiries into Technical, Billing, or General and provides
+    context-aware follow-ups.
+  icon: "\U0001F3A7"
+  icon_background: '#FFEADS'
+  use_icon_as_answer_icon: false
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    opening_statement: Hello! I'm your support assistant. How can I help you today?
+    suggested_questions:
+    - My app is crashing
+    - Where is my invoice?
+    - I have a general question
+    suggested_questions_after_answer:
+      enabled: true
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    file_upload:
+      enabled: false
+  graph:
+    nodes:
+    - id: start_node
+      type: custom
+      position:
+        x: 80
+        y: 200
+      positionAbsolute:
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Start
+        desc: Entry point for chat
+        variables: []
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: classifier_node
+      type: custom
+      position:
+        x: 380
+        y: 200
+      positionAbsolute:
+        x: 380
+        y: 200
+      data:
+        type: question-classifier
+        title: Triage Inquiry
+        desc: Categorize user input
+        query_variable_selector:
+        - sys
+        - query
+        model:
+          provider: openai
+          name: gpt-4o-mini
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        classes:
+        - id: '1'
+          name: Technical
+        - id: '2'
+          name: Billing
+        - id: '3'
+          name: General
+        _targetBranches:
+        - id: '1'
+          name: Technical
+        - id: '2'
+          name: Billing
+        - id: '3'
+          name: General
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: llm_tech
+      type: custom
+      position:
+        x: 700
+        y: 50
+      positionAbsolute:
+        x: 700
+        y: 50
+      data:
+        type: llm
+        title: Technical Support
+        desc: Handle technical issues
+        model:
+          provider: openai
+          name: gpt-4o-mini
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        prompt_template:
+        - role: system
+          text: "You are an efficient customer support assistant. Your primary task\
+            \ is to categorize user inquiries into one of three categories: 'Technical',\
+            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
+            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
+            - If the issue is 'Billing': Provide the following link to the billing\
+            \ portal: https://portal.example.com and offer further assistance with\
+            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
+            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
+            \ conversation history to ensure you don't ask for information already\
+            \ provided."
+        - role: user
+          text: 'Current User Input: {{#sys.query#}}
+
+
+            Please analyze the input and provide the appropriate response based on
+            the categorization rules.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+        memory:
+          enabled: true
+          window:
+            enabled: false
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: llm_billing
+      type: custom
+      position:
+        x: 700
+        y: 200
+      positionAbsolute:
+        x: 700
+        y: 200
+      data:
+        type: llm
+        title: Billing Support
+        desc: Handle billing issues
+        model:
+          provider: openai
+          name: gpt-4o-mini
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        prompt_template:
+        - role: system
+          text: "You are an efficient customer support assistant. Your primary task\
+            \ is to categorize user inquiries into one of three categories: 'Technical',\
+            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
+            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
+            - If the issue is 'Billing': Provide the following link to the billing\
+            \ portal: https://portal.example.com and offer further assistance with\
+            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
+            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
+            \ conversation history to ensure you don't ask for information already\
+            \ provided."
+        - role: user
+          text: 'Current User Input: {{#sys.query#}}
+
+
+            Please analyze the input and provide the appropriate response based on
+            the categorization rules.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+        memory:
+          enabled: true
+          window:
+            enabled: false
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: llm_general
+      type: custom
+      position:
+        x: 700
+        y: 350
+      positionAbsolute:
+        x: 700
+        y: 350
+      data:
+        type: llm
+        title: General Support
+        desc: Handle general issues
+        model:
+          provider: openai
+          name: gpt-4o-mini
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        prompt_template:
+        - role: system
+          text: "You are an efficient customer support assistant. Your primary task\
+            \ is to categorize user inquiries into one of three categories: 'Technical',\
+            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
+            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
+            - If the issue is 'Billing': Provide the following link to the billing\
+            \ portal: https://portal.example.com and offer further assistance with\
+            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
+            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
+            \ conversation history to ensure you don't ask for information already\
+            \ provided."
+        - role: user
+          text: 'Current User Input: {{#sys.query#}}
+
+
+            Please analyze the input and provide the appropriate response based on
+            the categorization rules.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+        memory:
+          enabled: true
+          window:
+            enabled: false
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: unify_output
+      type: custom
+      position: null
+      data:
+        type: llm
+        title: Llm
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: null
