@@ -1,118 +1,362 @@
 version: 0.5.0
 kind: app
 app:
-  mode: chatflow
-  name: Conversational Assistant
-  description: A multi-turn assistant that clarifies intent and maintains context.
-  icon: "\U0001F916"
+  mode: advanced-chat
+  name: Customer Support Assistant
+  description: A support assistant that triages issues into Technical, Billing, or
+    General categories.
+  icon: "\U0001F3A7"
   icon_background: '#FFEADS'
+  use_icon_as_answer_icon: false
 workflow:
   environment_variables: []
   conversation_variables: []
   features:
-    file_upload:
-      enabled: false
-    opening_statement: Hello! I'm your conversational assistant. How can I help you
-      today?
+    opening_statement: Hello! I'm your Customer Support Assistant. How can I help
+      you today?
+    suggested_questions:
+    - My app is crashing
+    - Where is my invoice?
+    - I have a general question
     retriever_resource:
       enabled: false
     sensitive_word_avoidance:
       enabled: false
     speech_to_text:
       enabled: false
-    suggested_questions:
-    - How can you help me?
-    - What should I do if I have a vague question?
-    suggested_questions_after_answer:
-      enabled: true
     text_to_speech:
+      enabled: false
+    suggested_questions_after_answer:
       enabled: false
   graph:
     nodes:
-    - id: '1715846400000'
+    - id: '1720000000001'
       type: custom
-      position:
+      position: &id001
         x: 80
         y: 200
       data:
         type: start
         title: Start
-        desc: Entry point for user queries
+        desc: Entry point for user query
         variables: []
-    - id: '1715846400001'
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id001
+    - id: '1720000000002'
       type: custom
-      position:
-        x: 280
+      position: &id002
+        x: 380
         y: 200
       data:
-        type: llm
-        title: Intent & Response Engine
-        desc: Processes user input with context and handles ambiguity
+        type: question-classifier
+        title: Intent Classifier
+        desc: Categorizes the user query
+        query_variable_selector:
+        - sys
+        - query
         model:
-          provider: google
-          name: gemini-2.5-pro-preview-05-06
+          provider: openai
+          name: gpt-4o
+          mode: chat
+          completion_params:
+            temperature: 0
+        classes:
+        - id: tech
+          name: Technical Support
+        - id: billing
+          name: Billing Inquiry
+        - id: general
+          name: General Inquiry
+        _targetBranches:
+        - id: tech
+          name: Technical Support
+        - id: billing
+          name: Billing Inquiry
+        - id: general
+          name: General Inquiry
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id002
+    - id: '1720000000003'
+      type: custom
+      position: &id003
+        x: 680
+        y: 50
+      data:
+        type: llm
+        title: Technical Track
+        desc: Handles technical issues and OS follow-up
+        model:
+          provider: openai
+          name: gpt-4o
           mode: chat
           completion_params:
             temperature: 0.7
-            max_tokens: 1024
         prompt_template:
         - role: system
-          text: You are a helpful and intelligent AI assistant. Your goal is to provide
-            clear, concise, and accurate answers to user queries while maintaining
-            the context of the conversation. If a user's request is ambiguous or lacks
-            sufficient detail, you must ask a polite follow-up question to clarify
-            their intent before providing a full answer. If you are unable to find
-            a relevant answer or the query is outside your capabilities, provide a
-            polite fallback response explaining your limitations and offering to help
-            with other topics.
+          text: 'You are an intelligent Customer Support Assistant. Your primary task
+            is to analyze the user''s message for Technical Support. Acknowledge the
+            issue and ask the user to specify if they are using Windows or macOS if
+            they haven''t mentioned it. Always maintain context from previous messages.
+            If the user has already provided their OS, proceed with troubleshooting
+            steps. Tone: Professional, empathetic, and efficient.'
         - role: user
-          text: 'User Input: {{#sys.query#}}'
-        variables: []
-        context:
-          enabled: false
-        vision:
-          enabled: false
+          text: '{{#sys.query#}}'
         memory:
           enabled: true
           window:
             enabled: true
             size: 10
           query_prompt_template: '{{#sys.query#}}'
-    - id: '1715846400002'
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id003
+    - id: '1720000000004'
       type: custom
-      position:
-        x: 480
+      position: &id004
+        x: 680
+        y: 200
+      data:
+        type: llm
+        title: Billing Track
+        desc: Handles billing inquiries and portal links
+        model:
+          provider: openai
+          name: gpt-4o
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        prompt_template:
+        - role: system
+          text: 'You are an intelligent Customer Support Assistant. Your primary task
+            is to analyze the user''s message for Billing Inquiries. Provide the following
+            link to the billing portal: https://billing.example.com/manage and offer
+            further assistance if needed. Ensure the link is clearly visible. Tone:
+            Professional, empathetic, and efficient.'
+        - role: user
+          text: '{{#sys.query#}}'
+        memory:
+          enabled: true
+          window:
+            enabled: true
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id004
+    - id: '1720000000005'
+      type: custom
+      position: &id005
+        x: 680
+        y: 350
+      data:
+        type: llm
+        title: General Track
+        desc: Handles general inquiries
+        model:
+          provider: openai
+          name: gpt-4o
+          mode: chat
+          completion_params:
+            temperature: 0.7
+        prompt_template:
+        - role: system
+          text: 'You are an intelligent Customer Support Assistant. Your primary task
+            is to analyze the user''s message for General Inquiries. Provide a helpful,
+            direct answer or ask clarifying questions if the intent is ambiguous.
+            Tone: Professional, empathetic, and efficient.'
+        - role: user
+          text: '{{#sys.query#}}'
+        memory:
+          enabled: true
+          window:
+            enabled: true
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id005
+    - id: '1720000000006'
+      type: custom
+      position: &id006
+        x: 980
+        y: 200
+      data:
+        type: variable-assigner
+        title: Merge Responses
+        desc: Aggregates output from the three tracks
+        output_type: string
+        variables:
+        - - '1720000000003'
+          - text
+        - - '1720000000004'
+          - text
+        - - '1720000000005'
+          - text
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id006
+    - id: '1720000000007'
+      type: custom
+      position: &id007
+        x: 1280
         y: 200
       data:
         type: answer
         title: Final Answer
-        desc: Streams the response back to the user
-        answer: '{{#1715846400001.text#}}'
+        desc: Streams the response to the user
+        answer: '{{#1720000000006.output#}}'
         variables:
-        - variable: 1715846400001.text
+        - variable: 1720000000006.output
           value_selector:
-          - '1715846400001'
-          - text
+          - '1720000000006'
+          - output
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+      positionAbsolute: *id007
     edges:
-    - id: edge-1715846400000-1715846400001
-      source: '1715846400000'
+    - id: start-to-classifier
+      source: '1720000000001'
       sourceHandle: source
-      target: '1715846400001'
+      target: '1720000000002'
       targetHandle: target
       type: custom
       data:
         sourceType: start
+        targetType: question-classifier
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: classifier-to-tech
+      source: '1720000000002'
+      sourceHandle: tech
+      target: '1720000000003'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: question-classifier
         targetType: llm
-    - id: edge-1715846400001-1715846400002
-      source: '1715846400001'
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: classifier-to-billing
+      source: '1720000000002'
+      sourceHandle: billing
+      target: '1720000000004'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: question-classifier
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: classifier-to-general
+      source: '1720000000002'
+      sourceHandle: general
+      target: '1720000000005'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: question-classifier
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: tech-to-agg
+      source: '1720000000003'
       sourceHandle: source
-      target: '1715846400002'
+      target: '1720000000006'
       targetHandle: target
       type: custom
       data:
         sourceType: llm
+        targetType: variable-assigner
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: billing-to-agg
+      source: '1720000000004'
+      sourceHandle: source
+      target: '1720000000006'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: variable-assigner
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: general-to-agg
+      source: '1720000000005'
+      sourceHandle: source
+      target: '1720000000006'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: variable-assigner
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: agg-to-answer
+      source: '1720000000006'
+      sourceHandle: source
+      target: '1720000000007'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: variable-assigner
         targetType: answer
-    viewport:
-      x: 0
-      y: 0
-      zoom: 1.0
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
