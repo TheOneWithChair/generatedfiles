@@ -3,10 +3,10 @@ kind: app
 app:
   mode: advanced-chat
   name: Customer Support Triage Assistant
-  description: Triages inquiries into Technical, Billing, or General and provides
-    context-aware follow-ups.
+  description: A professional support assistant that triages inquiries into Technical,
+    Billing, or General categories and maintains conversation context.
   icon: "\U0001F3A7"
-  icon_background: '#FFEADS'
+  icon_background: '#FFEAD5'
   use_icon_as_answer_icon: false
 workflow:
   environment_variables: []
@@ -42,15 +42,15 @@ workflow:
       data:
         type: start
         title: Start
-        desc: Entry point for chat
+        desc: Entry point for user query
         variables: []
       width: 244
       height: 90
       selected: false
       sourcePosition: right
       targetPosition: left
-      zIndex: 0
-    - id: classifier_node
+
+    - id: llm_triage
       type: custom
       position:
         x: 380
@@ -59,76 +59,41 @@ workflow:
         x: 380
         y: 200
       data:
-        type: question-classifier
-        title: Triage Inquiry
-        desc: Categorize user input
-        query_variable_selector:
-        - sys
-        - query
-        model:
-          provider: openai
-          name: gpt-4o-mini
-          mode: chat
-          completion_params:
-            temperature: 0.7
-        classes:
-        - id: '1'
-          name: Technical
-        - id: '2'
-          name: Billing
-        - id: '3'
-          name: General
-        _targetBranches:
-        - id: '1'
-          name: Technical
-        - id: '2'
-          name: Billing
-        - id: '3'
-          name: General
-        vision:
-          enabled: false
-      width: 244
-      height: 90
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      zIndex: 0
-    - id: llm_tech
-      type: custom
-      position:
-        x: 700
-        y: 50
-      positionAbsolute:
-        x: 700
-        y: 50
-      data:
         type: llm
-        title: Technical Support
-        desc: Handle technical issues
+        title: Triage & Respond
+        desc: Classifies the issue and generates a contextual response
         model:
-          provider: openai
-          name: gpt-4o-mini
+          provider: dbs/stork-0_0_20/stork
+          name: gemini-2.5-flash
           mode: chat
           completion_params:
             temperature: 0.7
+            max_tokens: 512
         prompt_template:
-        - role: system
-          text: "You are an efficient customer support assistant. Your primary task\
-            \ is to categorize user inquiries into one of three categories: 'Technical',\
-            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
-            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
-            - If the issue is 'Billing': Provide the following link to the billing\
-            \ portal: https://portal.example.com and offer further assistance with\
-            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
-            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
-            \ conversation history to ensure you don't ask for information already\
+        - id: sys_prompt
+          role: system
+          text: "You are a helpful customer support assistant. Your goal is to identify\
+            \ the user's issue category: Technical, Billing, or General. \n\n- For\
+            \ Technical issues: You must identify if they are using Windows or Mac.\
+            \ If they haven't specified, ask them.\n- For Billing issues: Provide\
+            \ the link to the billing portal (https://portal.example.com/billing).\n\
+            - For General issues: Provide a helpful, standard support response.\n\n\
+            Always greet the user warmly in the first interaction. If the issue is\
+            \ Technical and the OS is not mentioned in the history or current query,\
+            \ explicitly ask: 'Could you please let me know if you are using Windows\
+            \ or Mac?' If the issue is Billing, ensure the portal link is clearly\
+            \ visible. Use conversation memory to track if the issue category has\
+            \ already been established in previous turns. Keep responses concise and\
+            \ focused on the triage process. Always maintain a polite tone and use\
+            \ the conversation history to ensure you don't ask for information already\
             \ provided."
-        - role: user
-          text: 'Current User Input: {{#sys.query#}}
+        - id: user_prompt
+          role: user
+          text: 'User Query: {{#sys.query#}}
 
 
-            Please analyze the input and provide the appropriate response based on
-            the categorization rules.'
+            Review the conversation history and the current query above. Determine
+            the issue category and provide the appropriate response or follow-up question.'
         variables: []
         context:
           enabled: false
@@ -137,7 +102,7 @@ workflow:
         memory:
           enabled: true
           window:
-            enabled: false
+            enabled: true
             size: 10
           query_prompt_template: '{{#sys.query#}}'
       width: 244
@@ -145,123 +110,52 @@ workflow:
       selected: false
       sourcePosition: right
       targetPosition: left
-      zIndex: 0
-    - id: llm_billing
+
+    - id: answer_node
       type: custom
       position:
-        x: 700
+        x: 680
         y: 200
       positionAbsolute:
-        x: 700
+        x: 680
         y: 200
       data:
-        type: llm
-        title: Billing Support
-        desc: Handle billing issues
-        model:
-          provider: openai
-          name: gpt-4o-mini
-          mode: chat
-          completion_params:
-            temperature: 0.7
-        prompt_template:
-        - role: system
-          text: "You are an efficient customer support assistant. Your primary task\
-            \ is to categorize user inquiries into one of three categories: 'Technical',\
-            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
-            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
-            - If the issue is 'Billing': Provide the following link to the billing\
-            \ portal: https://portal.example.com and offer further assistance with\
-            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
-            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
-            \ conversation history to ensure you don't ask for information already\
-            \ provided."
-        - role: user
-          text: 'Current User Input: {{#sys.query#}}
-
-
-            Please analyze the input and provide the appropriate response based on
-            the categorization rules.'
-        variables: []
-        context:
-          enabled: false
-        vision:
-          enabled: false
-        memory:
-          enabled: true
-          window:
-            enabled: false
-            size: 10
-          query_prompt_template: '{{#sys.query#}}'
+        type: answer
+        title: Answer
+        desc: Displays the assistant's response
+        answer: '{{#llm_triage.text#}}'
+        variables:
+        - variable: llm_triage.text
+          value_selector:
+          - llm_triage
+          - text
       width: 244
       height: 90
       selected: false
       sourcePosition: right
       targetPosition: left
-      zIndex: 0
-    - id: llm_general
+
+    edges:
+    - id: start-to-llm
+      source: start_node
+      sourceHandle: source
+      target: llm_triage
+      targetHandle: target
       type: custom
-      position:
-        x: 700
-        y: 350
-      positionAbsolute:
-        x: 700
-        y: 350
       data:
-        type: llm
-        title: General Support
-        desc: Handle general issues
-        model:
-          provider: openai
-          name: gpt-4o-mini
-          mode: chat
-          completion_params:
-            temperature: 0.7
-        prompt_template:
-        - role: system
-          text: "You are an efficient customer support assistant. Your primary task\
-            \ is to categorize user inquiries into one of three categories: 'Technical',\
-            \ 'Billing', or 'General'. \n\n- If the issue is 'Technical': Acknowledge\
-            \ the issue and ask the user whether they are using 'Windows' or 'Mac'.\n\
-            - If the issue is 'Billing': Provide the following link to the billing\
-            \ portal: https://portal.example.com and offer further assistance with\
-            \ billing questions.\n- If the issue is 'General': Provide a helpful and\
-            \ direct answer to their query.\n\nAlways greet the user warmly. Use the\
-            \ conversation history to ensure you don't ask for information already\
-            \ provided."
-        - role: user
-          text: 'Current User Input: {{#sys.query#}}
+        sourceType: start
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
 
-
-            Please analyze the input and provide the appropriate response based on
-            the categorization rules.'
-        variables: []
-        context:
-          enabled: false
-        vision:
-          enabled: false
-        memory:
-          enabled: true
-          window:
-            enabled: false
-            size: 10
-          query_prompt_template: '{{#sys.query#}}'
-      width: 244
-      height: 90
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      zIndex: 0
-    - id: unify_output
+    - id: llm-to-answer
+      source: llm_triage
+      sourceHandle: source
+      target: answer_node
+      targetHandle: target
       type: custom
-      position: null
       data:
-        type: llm
-        title: Llm
-      width: 244
-      height: 90
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      zIndex: 0
-      positionAbsolute: null
+        sourceType: llm
+        targetType: answer
+        isInIteration: false
+        isInLoop: false
