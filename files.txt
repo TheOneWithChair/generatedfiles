@@ -1,117 +1,214 @@
-version: "0.6.0"
+version: 0.5.0
 kind: app
 app:
-  name: "EvenOddChecker"
   mode: workflow
-  icon: "🤖"
-  icon_background: "#FFEAD5"
-  icon_type: emoji
-  description: "Determines if a given number is even or odd"
-  use_icon_as_answer_icon: false
-dependencies: []
+  name: Travel Request Assistant
+  description: Automate the processing of employee travel requests by extracting trip
+    details, validating information, and generating a structured summary.
+  icon: "\u2708\uFE0F"
+  icon_background: '#E8F5E9'
 workflow:
   environment_variables: []
-  conversation_variables: []
   features:
     file_upload:
       enabled: false
-    opening_statement: ""
-    retriever_resource:
-      enabled: false
-    sensitive_word_avoidance:
-      enabled: false
-    speech_to_text:
-      enabled: false
-    suggested_questions: []
-    suggested_questions_after_answer:
-      enabled: false
-    text_to_speech:
-      enabled: false
   graph:
     nodes:
-      - id: "start-node-uuid"
-        type: custom
-        sourcePosition: right
-        targetPosition: left
-        position:
-          x: 80
-          y: 282
-        data:
-          type: start
-          title: Start
-          desc: ""
-          variables:
-            - variable: number
-              label: "Enter a number"
-              type: number
-              required: true
-      - id: "code-node-uuid"
-        type: custom
-        sourcePosition: right
-        targetPosition: left
-        position:
-          x: 680
-          y: 282
-        data:
-          type: code
-          title: "Check Parity"
-          desc: ""
-          variables:
-            - variable: number
-              value_selector:
-                - "start-node-uuid"
-                - number
-          code_language: python3
-          code: |
-            def main(number: int) -> dict:
-                result = 'Even number' if number % 2 == 0 else 'Odd number'
-                return {'result': result}
-          outputs:
-            result:
-              type: string
-      - id: "end-node-uuid"
-        type: custom
-        sourcePosition: right
-        targetPosition: left
-        position:
-          x: 980
-          y: 282
-        data:
-          type: end
-          title: "Output Result"
-          desc: ""
-          outputs:
-            - variable: result
-              value_selector:
-                - "code-node-uuid"
-                - result
-              value_type: string
+    - id: '1715860000000'
+      position:
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Travel Request Input
+        desc: Input travel request details
+        variables:
+        - variable: employee_name
+          label: Employee Name
+          type: text-input
+          required: true
+        - variable: employee_id
+          label: Employee ID
+          type: text-input
+          required: true
+        - variable: destination
+          label: Destination
+          type: text-input
+          required: true
+        - variable: start_date
+          label: Start Date (YYYY-MM-DD)
+          type: text-input
+          required: true
+        - variable: end_date
+          label: End Date (YYYY-MM-DD)
+          type: text-input
+          required: true
+        - variable: purpose
+          label: Purpose
+          type: paragraph
+          required: true
+        - variable: travel_mode
+          label: Travel Mode
+          type: select
+          required: true
+          options:
+          - flight
+          - train
+          - cab
+        - variable: preferences
+          label: Preferences
+          type: json
+          required: false
+    - id: '1715860000001'
+      position:
+        x: 330
+        y: 200
+      data:
+        type: code
+        title: Date Validation
+        desc: Verify that end_date is after start_date
+        code_language: python3
+        variables:
+        - variable: start_date
+          value_selector:
+          - '1715860000000'
+          - start_date
+        - variable: end_date
+          value_selector:
+          - '1715860000000'
+          - end_date
+        code: "import datetime\ndef main(start_date: str, end_date: str) -> dict:\n\
+          \    try:\n        s = datetime.datetime.strptime(start_date, '%Y-%m-%d')\n\
+          \        e = datetime.datetime.strptime(end_date, '%Y-%m-%d')\n        is_valid\
+          \ = e > s\n        return {\n            \"is_valid\": is_valid,\n     \
+          \       \"validation_msg\": \"OK\" if is_valid else \"ERROR: end_date is\
+          \ not after start_date\"\n        }\n    except Exception as err:\n    \
+          \    return {\n            \"is_valid\": False,\n            \"validation_msg\"\
+          : f\"ERROR: Invalid date format. {str(err)}\"\n        }\n"
+        outputs:
+          is_valid:
+            type: boolean
+          validation_msg:
+            type: string
+    - id: '1715860000002'
+      position:
+        x: 580
+        y: 200
+      data:
+        type: llm
+        title: Travel Operations Assistant
+        model:
+          provider: google
+          name: gemini-2.5-pro-preview-05-06
+          mode: chat
+          completion_params:
+            temperature: 0.0
+        prompt_template:
+        - role: system
+          text: "You are an expert Travel Operations Assistant. Your role is to analyze\
+            \ travel requests, ensure all required information is present, and format\
+            \ the data into a precise, structured summary. \n\nSTRICT RULES:\n1. Verify\
+            \ that the end_date is chronologically after the start_date based on the\
+            \ validation status provided.\n2. Ensure the output strictly contains\
+            \ only the requested fields: destination, start_date, end_date, and purpose.\n\
+            3. If any mandatory field (destination, dates, or purpose) is missing,\
+            \ flag it as 'MISSING' in the output.\n4. Maintain a neutral, corporate\
+            \ tone suitable for internal HR and finance records.\n5. If the date validation\
+            \ status is not 'OK', note the date discrepancy in the purpose field or\
+            \ flag dates as 'INVALID'.\n"
+        - role: user
+          text: 'Please process the following travel request and provide a structured
+            summary:
+
+
+            Employee Name: {{#1715860000000.employee_name#}}
+
+            Employee ID: {{#1715860000000.employee_id#}}
+
+            Destination: {{#1715860000000.destination#}}
+
+            Start Date: {{#1715860000000.start_date#}}
+
+            End Date: {{#1715860000000.end_date#}}
+
+            Purpose: {{#1715860000000.purpose#}}
+
+            Travel Mode: {{#1715860000000.travel_mode#}}
+
+            Preferences: {{#1715860000000.preferences#}}
+
+            Date Validation Status: {{#1715860000001.validation_msg#}}
+
+
+            Task: Extract the destination, start_date, end_date, and purpose into
+            a clean summary.
+
+            '
+        structured_output:
+          enabled: true
+          schema:
+            type: object
+            properties:
+              destination:
+                type: string
+              start_date:
+                type: string
+              end_date:
+                type: string
+              purpose:
+                type: string
+            required:
+            - destination
+            - start_date
+            - end_date
+            - purpose
+        vision:
+          enabled: false
+    - id: '1715860000003'
+      position:
+        x: 830
+        y: 200
+      data:
+        type: end
+        title: Final Summary
+        outputs:
+        - variable: destination
+          value_selector:
+          - '1715860000002'
+          - destination
+          value_type: string
+        - variable: start_date
+          value_selector:
+          - '1715860000002'
+          - start_date
+          value_type: string
+        - variable: end_date
+          value_selector:
+          - '1715860000002'
+          - end_date
+          value_type: string
+        - variable: purpose
+          value_selector:
+          - '1715860000002'
+          - purpose
+          value_type: string
     edges:
-      - id: "start-node-uuid-source-code-node-uuid-target"
-        source: "start-node-uuid"
-        sourceHandle: source
-        target: "code-node-uuid"
-        targetHandle: target
-        type: custom
-        data:
-          sourceType: start
-          targetType: code
-          isInIteration: false
-          isInLoop: false
-        zIndex: 0
-      - id: "code-node-uuid-source-end-node-uuid-target"
-        source: "code-node-uuid"
-        sourceHandle: source
-        target: "end-node-uuid"
-        targetHandle: target
-        type: custom
-        data:
-          sourceType: code
-          targetType: end
-          isInIteration: false
-          isInLoop: false
-        zIndex: 0
+    - id: edge-1
+      source: '1715860000000'
+      target: '1715860000001'
+      sourceHandle: source
+      targetHandle: target
+    - id: edge-2
+      source: '1715860000001'
+      target: '1715860000002'
+      sourceHandle: source
+      targetHandle: target
+    - id: edge-3
+      source: '1715860000002'
+      target: '1715860000003'
+      sourceHandle: source
+      targetHandle: target
     viewport:
       x: 0
       y: 0
-      zoom: 0.7
+      zoom: 1.0
