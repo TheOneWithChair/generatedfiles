@@ -1,7 +1,7 @@
 version: "0.6.0"
 kind: app
 app:
-  name: "Even/Odd Checker"
+  name: "EvenOddChecker"
   mode: workflow
   icon: "🤖"
   icon_background: "#FFEAD5"
@@ -38,11 +38,11 @@ workflow:
           y: 282
         data:
           type: start
-          title: Input Number
-          desc: Receives user input for number
+          title: Start
+          desc: ""
           variables:
-            - variable: input_number
-              label: Enter a Number
+            - variable: number
+              label: "Enter a number"
               type: number
               required: true
       - id: "code-node-uuid"
@@ -54,18 +54,17 @@ workflow:
           y: 282
         data:
           type: code
-          title: Check Parity
-          desc: Uses modulo operation to determine even/odd
+          title: "Check Parity"
+          desc: ""
           variables:
-            - variable: input_number
+            - variable: number
               value_selector:
                 - "start-node-uuid"
-                - input_number
+                - number
           code_language: python3
           code: |
-            def main(args: dict) -> dict:
-                num = args['input_number']
-                result = 'Even number' if num % 2 == 0 else 'Odd number'
+            def main(number: int) -> dict:
+                result = 'Even number' if number % 2 == 0 else 'Odd number'
                 return {'result': result}
           outputs:
             result:
@@ -79,8 +78,8 @@ workflow:
           y: 282
         data:
           type: end
-          title: Output Result
-          desc: Returns final classification
+          title: "Output Result"
+          desc: ""
           outputs:
             - variable: result
               value_selector:
