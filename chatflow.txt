@@ -1,0 +1,118 @@
+version: 0.5.0
+kind: app
+app:
+  mode: chatflow
+  name: Conversational Assistant
+  description: A multi-turn assistant that clarifies intent and maintains context.
+  icon: "\U0001F916"
+  icon_background: '#FFEADS'
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: Hello! I'm your conversational assistant. How can I help you
+      today?
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - How can you help me?
+    - What should I do if I have a vague question?
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+    - id: '1715846400000'
+      type: custom
+      position:
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Start
+        desc: Entry point for user queries
+        variables: []
+    - id: '1715846400001'
+      type: custom
+      position:
+        x: 280
+        y: 200
+      data:
+        type: llm
+        title: Intent & Response Engine
+        desc: Processes user input with context and handles ambiguity
+        model:
+          provider: google
+          name: gemini-2.5-pro-preview-05-06
+          mode: chat
+          completion_params:
+            temperature: 0.7
+            max_tokens: 1024
+        prompt_template:
+        - role: system
+          text: You are a helpful and intelligent AI assistant. Your goal is to provide
+            clear, concise, and accurate answers to user queries while maintaining
+            the context of the conversation. If a user's request is ambiguous or lacks
+            sufficient detail, you must ask a polite follow-up question to clarify
+            their intent before providing a full answer. If you are unable to find
+            a relevant answer or the query is outside your capabilities, provide a
+            polite fallback response explaining your limitations and offering to help
+            with other topics.
+        - role: user
+          text: 'User Input: {{#sys.query#}}'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+        memory:
+          enabled: true
+          window:
+            enabled: true
+            size: 10
+          query_prompt_template: '{{#sys.query#}}'
+    - id: '1715846400002'
+      type: custom
+      position:
+        x: 480
+        y: 200
+      data:
+        type: answer
+        title: Final Answer
+        desc: Streams the response back to the user
+        answer: '{{#1715846400001.text#}}'
+        variables:
+        - variable: 1715846400001.text
+          value_selector:
+          - '1715846400001'
+          - text
+    edges:
+    - id: edge-1715846400000-1715846400001
+      source: '1715846400000'
+      sourceHandle: source
+      target: '1715846400001'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: start
+        targetType: llm
+    - id: edge-1715846400001-1715846400002
+      source: '1715846400001'
+      sourceHandle: source
+      target: '1715846400002'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: answer
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1.0
