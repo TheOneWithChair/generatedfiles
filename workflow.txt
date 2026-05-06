@@ -1,0 +1,336 @@
+version: 0.5.0
+kind: app
+app:
+  mode: workflow
+  name: Article Summarizer and Translator
+  description: Summarizes articles into 3 bullets and translates them into Spanish
+    and French.
+  icon: "\U0001F4DD"
+  icon_background: '#FFEADS'
+  use_icon_as_answer_icon: false
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+    - id: '1720000000001'
+      type: custom
+      position:
+        x: 80
+        y: 200
+      positionAbsolute:
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Start
+        desc: Input article text
+        variables:
+        - variable: article_text
+          label: Article Text
+          type: paragraph
+          required: true
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: '1720000000002'
+      type: custom
+      position:
+        x: 380
+        y: 200
+      positionAbsolute:
+        x: 380
+        y: 200
+      data:
+        type: llm
+        title: Summarizer
+        desc: Extract 3 bullet points
+        model:
+          provider: google
+          name: gemini-3-flash-preview
+          mode: chat
+          completion_params:
+            temperature: 0.3
+        prompt_template:
+        - role: system
+          text: You are a professional multilingual content analyst and translator.
+            Your goal is to extract the core essence of articles with high precision
+            and provide linguistically accurate translations that maintain the original
+            meaning and structure.
+        - role: user
+          text: 'ARTICLE TEXT: {{#1720000000001.article_text#}}
+
+
+            TASK:
+
+            1. If summarizing: Extract exactly 3 concise bullet points representing
+            the main ideas.
+
+
+            Constraint: Output exactly three bullet points without introductory or
+            concluding text.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: '1720000000003'
+      type: custom
+      position:
+        x: 680
+        y: 80
+      positionAbsolute:
+        x: 680
+        y: 80
+      data:
+        type: llm
+        title: Spanish Translator
+        desc: Translate to Spanish
+        model:
+          provider: dbs/stork-0_0_20/stork
+          name: gemini-2.5-flash
+          mode: chat
+          completion_params:
+            temperature: 0.3
+        prompt_template:
+        - role: system
+          text: You are a professional multilingual content analyst and translator.
+            Your goal is to extract the core essence of articles with high precision
+            and provide linguistically accurate translations that maintain the original
+            meaning and structure.
+        - role: user
+          text: 'ARTICLE TEXT: {{#1720000000002.text#}}
+
+
+            TASK:
+
+            2. If translating: Translate the provided summary into the target language
+            (Spanish) while maintaining the 3-bullet format.
+
+
+            Constraint: Preserve the exact formatting and bullet structure. No conversational
+            filler.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: '1720000000004'
+      type: custom
+      position:
+        x: 680
+        y: 320
+      positionAbsolute:
+        x: 680
+        y: 320
+      data:
+        type: llm
+        title: French Translator
+        desc: Translate to French
+        model:
+          provider: google
+          name: gemini-3-flash-preview
+          mode: chat
+          completion_params:
+            temperature: 0.3
+        prompt_template:
+        - role: system
+          text: You are a professional multilingual content analyst and translator.
+            Your goal is to extract the core essence of articles with high precision
+            and provide linguistically accurate translations that maintain the original
+            meaning and structure.
+        - role: user
+          text: 'ARTICLE TEXT: {{#1720000000002.text#}}
+
+
+            TASK:
+
+            2. If translating: Translate the provided summary into the target language
+            (French) while maintaining the 3-bullet format.
+
+
+            Constraint: Preserve the exact formatting and bullet structure. No conversational
+            filler.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: '1720000000005'
+      type: custom
+      position:
+        x: 980
+        y: 200
+      positionAbsolute:
+        x: 980
+        y: 200
+      data:
+        type: assigner
+        title: Merge Results
+        desc: Aggregate translations
+        variables:
+        - value_selector:
+          - '1720000000002'
+          - text
+        - value_selector:
+          - '1720000000003'
+          - text
+        - value_selector:
+          - '1720000000004'
+          - text
+        output_type: string
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: '1720000000006'
+      type: custom
+      position:
+        x: 1280
+        y: 200
+      positionAbsolute:
+        x: 1280
+        y: 200
+      data:
+        type: end
+        title: End
+        desc: Final output
+        outputs:
+        - variable: summary_en
+          value_selector:
+          - '1720000000002'
+          - text
+          value_type: string
+        - variable: summary_es
+          value_selector:
+          - '1720000000003'
+          - text
+          value_type: string
+        - variable: summary_fr
+          value_selector:
+          - '1720000000004'
+          - text
+          value_type: string
+      width: 244
+      height: 90
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    edges:
+    - id: 1720000000001-to-1720000000002
+      source: '1720000000001'
+      sourceHandle: source
+      target: '1720000000002'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: start
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: 1720000000002-to-1720000000003
+      source: '1720000000002'
+      sourceHandle: source
+      target: '1720000000003'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: 1720000000002-to-1720000000004
+      source: '1720000000002'
+      sourceHandle: source
+      target: '1720000000004'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: 1720000000003-to-1720000000005
+      source: '1720000000003'
+      sourceHandle: source
+      target: '1720000000005'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: assigner
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: 1720000000004-to-1720000000005
+      source: '1720000000004'
+      sourceHandle: source
+      target: '1720000000005'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: assigner
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: 1720000000005-to-1720000000006
+      source: '1720000000005'
+      sourceHandle: source
+      target: '1720000000006'
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: assigner
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
