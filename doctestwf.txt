@@ -262,3 +262,280 @@ workflow:
       x: 0
       y: 0
       zoom: 0.8
+
+
+
+
+
+
+
+
+
+
+
+
+
+version: 0.5.0
+kind: app
+app:
+  name: cURL to JMeter JMX Converter
+  mode: workflow
+  description: Converts uploaded cURL commands into a valid JMeter .jmx file and submits
+    it to a performance testing API.
+  icon: "\U0001F680"
+  icon_background: '#E8FBFF'
+  use_icon_as_answer_icon: false
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    file_upload:
+      enabled: false
+      allowed_file_types:
+      - document
+      - custom
+      allowed_file_extensions:
+      - .txt
+      - .sh
+      - .curl
+      allowed_file_upload_methods:
+      - local_file
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+    - id: start_node
+      type: custom
+      position: &id001
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Input Configuration
+        desc: Accepts thread count, duration, and cURL file.
+        variables:
+        - variable: thread_count
+          label: Thread Count
+          type: number
+          required: true
+          default: 10
+        - variable: duration
+          label: Duration (seconds)
+          type: number
+          required: true
+          default: 60
+        - variable: curl_file
+          label: cURL File
+          type: file-list
+          required: true
+          allowed_file_types:
+          - document
+          - custom
+          allowed_file_extensions:
+          - .txt
+          - .sh
+          - .curl
+          allowed_file_upload_methods:
+          - local_file
+          number_limits: 1
+      width: 244
+      height: 90
+      positionAbsolute: *id001
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: doc_extractor_node
+      type: custom
+      position: &id002
+        x: 380
+        y: 200
+      data:
+        type: document-extractor
+        title: Extract cURL Text
+        desc: Extracts raw text from the uploaded file.
+        variable_selector:
+        - start_node
+        - curl_file
+        is_array_file: true
+      width: 244
+      height: 90
+      positionAbsolute: *id002
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: llm_node
+      type: custom
+      position: &id003
+        x: 680
+        y: 200
+      data:
+        type: llm
+        title: JMX Generator
+        desc: Converts cURL to JMeter XML.
+        model:
+          provider: openai
+          name: gpt-4o
+          mode: chat
+          completion_params:
+            temperature: 0.1
+        prompt_template:
+        - role: system
+          text: You are an expert Performance Testing Engineer and JMeter specialist.
+            Your role is to parse raw cURL commands and transform them into a syntactically
+            correct Apache JMeter (.jmx) XML structure. You must ensure that the ThreadGroup
+            is correctly configured with user-provided thread counts and durations,
+            and that all HTTP headers, methods, and body payloads from the cURL commands
+            are accurately mapped to JMeter HTTP Samplers and Header Managers.
+        - role: user
+          text: "Please generate a valid JMeter .jmx XML file based on the following\
+            \ inputs:\n\n### Configuration\n- Thread Count: {{#start_node.thread_count#}}\n\
+            - Duration (seconds): {{#start_node.duration#}}\n\n### Source cURL Commands\n\
+            {{#doc_extractor_node.text#}}\n\n### Requirements\n1. Output ONLY the\
+            \ raw XML content. \n2. Do NOT wrap the output in markdown code blocks\
+            \ (e.g., no ```xml).\n3. Ensure the XML includes a ThreadGroup using the\
+            \ specified thread count and duration.\n4. Each cURL command should be\
+            \ converted into an individual HTTP Request Sampler.\n5. Include a Header\
+            \ Manager for each sampler to preserve headers from the cURL."
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      positionAbsolute: *id003
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: http_request_node
+      type: custom
+      position: &id004
+        x: 980
+        y: 200
+      data:
+        type: http-request
+        title: Submit to API
+        desc: Sends the generated JMX to the target API.
+        method: post
+        url: https://api.example.com/performance/submit
+        authorization:
+          type: no-auth
+        headers: Content-Type:application/xml
+        params: ''
+        body:
+          type: raw-text
+          data: '{{#llm_node.text#}}'
+        timeout:
+          connect: 10
+          read: 60
+          write: 60
+        variables:
+        - variable: jmx_content
+          value_selector:
+          - llm_node
+          - text
+      width: 244
+      height: 90
+      positionAbsolute: *id004
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: end_node
+      type: custom
+      position: &id005
+        x: 1280
+        y: 200
+      data:
+        type: end
+        title: Final Output
+        desc: Returns the JMX content and API response.
+        outputs:
+        - variable: generated_jmx
+          value_selector:
+          - llm_node
+          - text
+          value_type: string
+        - variable: api_response_body
+          value_selector:
+          - http_request_node
+          - body
+          value_type: string
+        - variable: api_status_code
+          value_selector:
+          - http_request_node
+          - status_code
+          value_type: number
+      width: 244
+      height: 90
+      positionAbsolute: *id005
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    edges:
+    - id: edge-start-to-doc
+      source: start_node
+      sourceHandle: source
+      target: doc_extractor_node
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: start
+        targetType: document-extractor
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: edge-doc-to-llm
+      source: doc_extractor_node
+      sourceHandle: source
+      target: llm_node
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: document-extractor
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: edge-llm-to-http
+      source: llm_node
+      sourceHandle: source
+      target: http_request_node
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: http-request
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: edge-http-to-end
+      source: http_request_node
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: http-request
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
