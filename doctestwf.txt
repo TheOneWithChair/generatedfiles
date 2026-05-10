@@ -1,0 +1,264 @@
+version: 0.5.0
+kind: app
+app:
+  mode: workflow
+  name: cURL to JMeter Automator
+  description: Converts cURL commands to JMeter JMX and submits to a remote execution
+    API.
+  icon: "\U0001F680"
+  icon_background: '#E8F5E9'
+  use_icon_as_answer_icon: false
+workflow:
+  environment_variables: []
+  conversation_variables: []
+  features:
+    file_upload:
+      enabled: true
+      allowed_file_types:
+      - document
+      allowed_file_extensions:
+      - .txt
+      - .sh
+      - .curl
+      allowed_file_upload_methods:
+      - local_file
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+    - id: start
+      type: custom
+      position: &id001
+        x: 80
+        y: 200
+      data:
+        type: start
+        title: Input Parameters
+        desc: Accepts thread count, duration, and cURL file.
+        variables:
+        - variable: thread_count
+          label: Thread Count
+          type: number
+          required: true
+          default: 1
+        - variable: duration
+          label: Duration (seconds)
+          type: number
+          required: true
+          default: 60
+        - variable: curl_file
+          label: cURL Commands File
+          type: file-list
+          required: true
+      width: 244
+      height: 90
+      positionAbsolute: *id001
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: doc_extractor
+      type: custom
+      position: &id002
+        x: 380
+        y: 200
+      data:
+        type: document-extractor
+        title: Extract cURL Text
+        desc: Reads the content of the uploaded file.
+        variable_selector:
+        - start
+        - curl_file
+      width: 244
+      height: 90
+      positionAbsolute: *id002
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: llm_jmx
+      type: custom
+      position: &id003
+        x: 680
+        y: 200
+      data:
+        type: llm
+        title: JMX Generator
+        desc: Converts cURL to JMeter XML.
+        model:
+          provider: openai
+          name: gpt-4o
+          mode: chat
+          completion_params:
+            temperature: 0.1
+        prompt_template:
+        - role: system
+          text: 'You are a specialized JMeter script generator. Your goal is to parse
+            cURL commands and generate a production-ready Apache JMeter .jmx XML file.
+            You must strictly follow the JMeter XML schema, ensuring that the ThreadGroup
+            uses the provided thread count and duration parameters. Map all HTTP methods,
+            headers, and payloads accurately from the input cURL commands into corresponding
+            HTTP Request samplers. IMPORTANT: Output ONLY the raw XML content. Do
+            not include markdown code blocks (```xml), explanations, or any text other
+            than the XML itself.'
+        - role: user
+          text: 'Generate a JMeter .jmx XML based on these parameters:
+
+
+            Thread Count: {{#start.thread_count#}}
+
+            Duration: {{#start.duration#}} seconds
+
+
+            Input cURL Commands:
+
+            {{#doc_extractor.text#}}
+
+
+            Output only the raw XML content.'
+        variables: []
+        context:
+          enabled: false
+        vision:
+          enabled: false
+      width: 244
+      height: 90
+      positionAbsolute: *id003
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: api_submit
+      type: custom
+      position: &id004
+        x: 980
+        y: 200
+      data:
+        type: http-request
+        title: Submit to API
+        desc: Sends the JMX to the remote execution endpoint.
+        method: post
+        url: https://api.example.com/v1/jmeter/execute
+        authorization:
+          type: no-auth
+        headers: Content-Type:application/xml
+        params: ''
+        body:
+          type: raw-text
+          data: '{{#llm_jmx.text#}}'
+        timeout:
+          connect: 10
+          read: 60
+          write: 60
+        variables:
+        - variable: jmx_content
+          value_selector:
+          - llm_jmx
+          - text
+      width: 244
+      height: 90
+      positionAbsolute: *id004
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    - id: end
+      type: custom
+      position: &id005
+        x: 1280
+        y: 200
+      data:
+        type: end
+        title: Final Output
+        desc: Returns the JMX and API response.
+        outputs:
+        - variable: generated_jmx
+          value_selector:
+          - llm_jmx
+          - text
+          value_type: string
+        - variable: execution_response
+          value_selector:
+          - api_submit
+          - body
+          value_type: string
+        - variable: http_status
+          value_selector:
+          - api_submit
+          - status_code
+          value_type: number
+      width: 244
+      height: 90
+      positionAbsolute: *id005
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      zIndex: 0
+    edges:
+    - id: start-to-doc
+      source: start
+      sourceHandle: source
+      target: doc_extractor
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: start
+        targetType: document-extractor
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: doc-to-llm
+      source: doc_extractor
+      sourceHandle: source
+      target: llm_jmx
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: document-extractor
+        targetType: llm
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: llm-to-http
+      source: llm_jmx
+      sourceHandle: source
+      target: api_submit
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: llm
+        targetType: http-request
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    - id: http-to-end
+      source: api_submit
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: http-request
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+      selected: false
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
