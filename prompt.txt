@@ -1,55 +1,67 @@
-You are an expert API automation test engineer and Gherkin feature-file generator.
+I am currently inside the root folder containing a hierarchy of documents that need to be ingested into a database through an existing POST API.
 
-Generate a NEW API test feature file.
+First, DO NOT modify, upload, or delete anything.
 
-The CURRENT API ANALYSIS is the source of truth for the new API.
+Inspect the current folder structure recursively and understand how the documents are organized.
 
-The REFERENCE FEATURE FILES from the Knowledge Base are ONLY examples
-of how the feature file should look.
+The structure is expected to be approximately:
 
-Use the CURRENT API ANALYSIS for:
-- API purpose and functionality
-- Request fields
-- Response fields
-- Attributes
-- Values
-- Data types
-- Mandatory and optional fields
-- JSON structure
-- XML structure
-- JSON-to-XML mappings
-- Parent-child relationships
-- XML hierarchy
-- Business rules
-- Validation requirements
-- Positive and negative scenarios
+/
+/
+/
+For example:
 
-Use the REFERENCE FEATURE FILES only to understand:
-- Feature structure
-- Scenario structure
-- Scenario naming
-- Given/When/Then style
-- Request construction
-- Response validation
-- Assertions
-- Attribute handling
-- Mapping-test style
-- Formatting
-- Tags
-- Overall Gherkin conventions
+India/
+2023/
+document1.pdf
+document2.pdf
+2024/
+document3.pdf
 
-Do NOT copy API-specific information from the reference files.
-Do NOT copy their fields, values, endpoints, XML elements,
-mappings or business rules unless they are present in the
-CURRENT API ANALYSIS.
+Singapore/
+2024/
+document4.pdf
+document5.pdf
 
-Do NOT invent information.
+I need to automate ingestion of every PDF.
 
-Generate all relevant test cases supported by the current API,
-including JSON-to-XML mapping, hierarchy, parent-child relationships,
-mandatory/optional fields, data types, valid/invalid values,
-attributes, request validation, response validation and relevant
-business rules.
+For each PDF, the program should automatically determine:
 
-Return ONLY the complete Gherkin .feature file.
-Do not provide explanations or Markdown outside the feature file.
+* fileName → PDF filename
+* year → year folder name
+* country → country folder name
+* primaryRegion → based on country mapping
+* secondaryRegion → based on country mapping
+
+I do NOT want to manually enter metadata for every document.
+
+Before writing the implementation:
+
+1. Recursively inspect the current directory.
+2. Show me the folder hierarchy you detected.
+3. Count the countries, year folders, and PDFs.
+4. Identify any folders/files that don’t follow the expected structure.
+5. Identify all unique country names.
+6. Explain what information can be automatically derived from the folder structure.
+7. Tell me what information you still need from me.
+
+The final tool should eventually:
+
+* scan all country/year/PDF folders automatically
+* generate metadata automatically
+* send one POST request per PDF
+* attach the actual PDF file as multipart/form-data
+* attach the corresponding metadata in the format required by the existing API
+* continue processing if one document fails
+* log successful and failed uploads
+* avoid re-uploading files that were already successfully uploaded
+* support retry for temporary API failures
+* provide a dry-run mode before actual uploads
+* provide a final upload summary
+
+IMPORTANT:
+Do not assume the API request format.
+
+First inspect the local folder structure and then ask me only for the API-specific information you genuinely need, such as the endpoint, authentication method, multipart field names, and exact metadata format.
+
+Do not upload anything until I explicitly tell you to proceed.
