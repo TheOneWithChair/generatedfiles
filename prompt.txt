@@ -1,67 +1,106 @@
-I am currently inside the root folder containing a hierarchy of documents that need to be ingested into a database through an existing POST API.
+I am currently inside the root folder containing the documents.
 
-First, DO NOT modify, upload, or delete anything.
+I want to build an automated document ingestion script.
 
-Inspect the current folder structure recursively and understand how the documents are organized.
+First, inspect the current folder structure recursively. DO NOT upload anything yet and DO NOT modify/delete any existing files.
 
-The structure is expected to be approximately:
+Expected structure:
 
 /
 /
 /
-For example:
-
-India/
-2023/
-document1.pdf
-document2.pdf
-2024/
-document3.pdf
-
-Singapore/
-2024/
-document4.pdf
-document5.pdf
-
-I need to automate ingestion of every PDF.
-
-For each PDF, the program should automatically determine:
+For every PDF, the script must automatically derive:
 
 * fileName → PDF filename
 * year → year folder name
 * country → country folder name
-* primaryRegion → based on country mapping
-* secondaryRegion → based on country mapping
+* primaryRegion → country mapping
+* secondaryRegion → country mapping
 
-I do NOT want to manually enter metadata for every document.
+I do NOT want to manually enter metadata for each PDF.
 
-Before writing the implementation:
+IMPORTANT INGESTION BEHAVIOR:
 
-1. Recursively inspect the current directory.
-2. Show me the folder hierarchy you detected.
-3. Count the countries, year folders, and PDFs.
-4. Identify any folders/files that don’t follow the expected structure.
-5. Identify all unique country names.
-6. Explain what information can be automatically derived from the folder structure.
-7. Tell me what information you still need from me.
+1. Process PDFs ONE AT A TIME, sequentially.
+2. Do NOT upload multiple PDFs concurrently.
+3. For each PDF:
+    * identify the file
+    * generate its metadata
+    * send exactly one POST request
+    * wait for the response
+    * display the result in the terminal
+    * only then move to the next PDF
+4. I need clear real-time progress in the terminal.
 
-The final tool should eventually:
+The terminal output should look approximately like:
 
-* scan all country/year/PDF folders automatically
-* generate metadata automatically
-* send one POST request per PDF
-* attach the actual PDF file as multipart/form-data
-* attach the corresponding metadata in the format required by the existing API
-* continue processing if one document fails
-* log successful and failed uploads
-* avoid re-uploading files that were already successfully uploaded
-* support retry for temporary API failures
-* provide a dry-run mode before actual uploads
-* provide a final upload summary
+[1/250] Uploading: India/2024/document1.pdf
+File: document1.pdf
+Year: 2024
+Primary Region: APAC
+Secondary Region: South Asia
+Uploading…
+✓ SUCCESS (200)
 
-IMPORTANT:
-Do not assume the API request format.
+[2/250] Uploading: India/2024/document2.pdf
+File: document2.pdf
+Year: 2024
+Primary Region: APAC
+Secondary Region: South Asia
+Uploading…
+✓ SUCCESS (200)
 
-First inspect the local folder structure and then ask me only for the API-specific information you genuinely need, such as the endpoint, authentication method, multipart field names, and exact metadata format.
+If a request fails:
 
-Do not upload anything until I explicitly tell you to proceed.
+[3/250] Uploading: India/2024/document3.pdf
+Uploading…
+✗ FAILED (500)
+Error: 
+
+Then continue with the next PDF instead of stopping the entire process.
+
+At the end, print a summary such as:
+
+========================================
+INGESTION COMPLETE
+
+Total PDFs:      250
+Successful:      243
+Failed:            5
+Skipped:           2
+
+Also create a persistent upload status/log so that if I stop the script and run it again, successfully uploaded PDFs are not uploaded again.
+
+The script should support:
+
+–dry-run
+
+In dry-run mode, do everything except the POST request. Show me exactly which PDFs would be uploaded and what metadata would be sent.
+
+For the actual upload:
+
+* use multipart/form-data
+* send the actual PDF binary as the file
+* send the required metadata alongside it
+* wait for the API response before processing the next PDF
+
+Do NOT guess the API request structure.
+
+First inspect the current directory and report:
+
+1. Number of countries
+2. Number of year folders
+3. Number of PDFs
+4. Unique country names
+5. Any invalid/unexpected folder structures
+
+Then ask me for only the API-specific details you need:
+
+* POST endpoint
+* authentication
+* file field name
+* metadata field name(s)
+* exact metadata format
+* expected success response
+
+Do not upload anything until I explicitly tell you to start.
